@@ -1,5 +1,4 @@
 import datetime
-import gzip
 import os
 import ccs
 import json
@@ -36,12 +35,12 @@ while (True):
         print(coinPairs[key]['altname'])
 
         coinPair_dir = os.path.join(path, coinPairs[key]['altname'] + '/')
-        file = os.path.join(coinPair_dir, datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S") + ".gz")
+        file = os.path.join(coinPair_dir, datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S") + ".txt")
 
-        f = gzip.open(file, "w")
+        f = open(file, "w")
 
         response = ccs.kraken.public.getOrderBook(coinPairs[key]['altname'])
-        f.write(str(response).encode("ascii"))
+        f.write(response)
 
         f.close()
 
