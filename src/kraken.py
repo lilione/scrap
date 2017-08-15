@@ -1,37 +1,48 @@
+import datetime
 import os
-
 import ccs
 import json
 
-import time
+sleepTime = 20 #in seconds
+
+def check_dir(directory):
+    try:
+        os.stat(directory)
+    except:
+        os.mkdir(directory)
+
 
 path = '../records'
+check_dir(path)
 
-coinA = "ETH"
-coinB = "USD"
+response = ccs.kraken.public.getTradableAssetPairs()
+map = json.loads(response)
+coinPairs = map["result"]
+for key in coinPairs:
+    coinPair_dir = os.path.join(path, coinPairs[key]['altname'] + '/')
+    check_dir(coinPair_dir)
 
-sleepTime = 20
+    file = os.path.join(coinPair_dir, coinPairs[key]['altname'] + ".txt")
 
-while (True):
-    print(time.asctime( time.localtime(time.time()) ) + '\tscripting...')
-
-    file = os.path.join(path, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + ".txt")
     f = open(file, "w")
-
-    response = ccs.kraken.public.getOrderBook(coinA + coinB)
-    map = json.loads(response)
-    result = map["result"]["X" + coinA + "Z" + coinB]
-
-    asks = result["asks"]
-    f.write('asks {}\n'.format(len(asks)))
-    for ask in reversed(asks):
-        f.write('{}\n'.format(str(ask)))
-
-    bids = result["bids"]
-    f.write('bids {}\n'.format(len(bids)))
-    for bid in bids:
-        f.write('{}\n'.format(str(bid)))
-
+    f.write(str(coinPairs[key]))
     f.close()
 
-    time.sleep(sleepTime)
+while (True):
+    print(datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S") + '\tscripting...')
+
+    for key in coinPairs:
+        print(coinPairs[key]['altname'])
+
+        coinPair_dir = os.path.join(path, coinPairs[key]['altname'] + '/')
+        file = os.path.join(coinPair_dir, datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S") + ".txt")
+
+        f = open(file, "w")
+
+        response = ccs.kraken.public.getOrderBook(coinPairs[key]['altname'])
+        f.write(response)
+
+        f.close()
+
+    datetime.time.sleep(sleepTime)
+
