@@ -23,15 +23,18 @@ def deal(coinPair):
     last = None
 
     while (True):
-        response = ccs.kraken.public.getOrderBook(coinPair)
+        try:
+            response = ccs.kraken.public.getOrderBook(coinPair)
 
-        if (response != last):
-            logging.info("scripting... " + coinPair)
-            file = os.path.join(coinPair_dir, datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S") + ".gz")
-            f = gzip.open(file, "w")
-            f.write(str(response).encode("ascii"))
-            f.close()
-            last = response
+            if (response != last):
+                logging.info("scripting... " + coinPair)
+                file = os.path.join(coinPair_dir, datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S") + ".gz")
+                f = gzip.open(file, "w")
+                f.write(str(response).encode("ascii"))
+                f.close()
+                last = response
+        except Exception as e:
+            logging.info(e)
 
 result_dir = '../results'
 check_dir(result_dir)
