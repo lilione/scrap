@@ -3,8 +3,13 @@ import gzip
 import os
 import ccs
 import json
+import logging
+from multiprocessing import Process
 
-sleepTime = 20 #in seconds
+logging_format = '%(asctime)-15s %(levelname)-8s %(name)-6s %(message)s'
+logging.basicConfig(format=logging_format, level=logging.INFO)
+
+sys = "kraken"
 
 def check_dir(directory):
     try:
@@ -12,15 +17,34 @@ def check_dir(directory):
     except:
         os.mkdir(directory)
 
+def deal(coinPair):
+    coinPair_dir = os.path.join(path, coinPair)
 
-path = '../records'
+    last = None
+
+    while (True):
+        response = ccs.kraken.public.getOrderBook(coinPair)
+
+        if (response != last):
+            logging.info("scripting... " + coinPair)
+            file = os.path.join(coinPair_dir, datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S") + ".gz")
+            f = gzip.open(file, "w")
+            f.write(str(response).encode("ascii"))
+            f.close()
+            last = response
+
+result_dir = '../results'
+check_dir(result_dir)
+path = os.path.join(result_dir, sys)
 check_dir(path)
 
 response = ccs.kraken.public.getTradableAssetPairs()
 map = json.loads(response)
 coinPairs = map["result"]
+
 for key in coinPairs:
-    coinPair_dir = os.path.join(path, coinPairs[key]['altname'] + '/')
+    print(coinPairs[key]['altname'])
+    coinPair_dir = os.path.join(path, coinPairs[key]['altname'])
     check_dir(coinPair_dir)
 
     file = os.path.join(coinPair_dir, coinPairs[key]['altname'] + ".txt")
@@ -29,21 +53,11 @@ for key in coinPairs:
     f.write(str(coinPairs[key]))
     f.close()
 
-while (True):
-    print(datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S") + '\tscripting...')
-
-    for key in coinPairs:
-        print(coinPairs[key]['altname'])
-
-        coinPair_dir = os.path.join(path, coinPairs[key]['altname'] + '/')
-        file = os.path.join(coinPair_dir, datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S") + ".gz")
-
-        f = gzip.open(file, "w")
-
-        response = ccs.kraken.public.getOrderBook(coinPairs[key]['altname'])
-        f.write(str(response).encode("ascii"))
-
-        f.close()
-
-    datetime.time.sleep(sleepTime)
+p = []
+for key in coinPairs:
+    p.append(Process(target=deal,args=(coinPairs[key]['altname'], )))
+for proc in p:
+    proc.start()
+for proc in p:
+    proc.join()
 
